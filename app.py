@@ -546,53 +546,46 @@ with st.sidebar:
     provider = st.selectbox("AI Provider", ["groq", "gemini", "openai", "claude"],
                             index=0, label_visibility="collapsed",
                             help="Groq is free and recommended")
-    st.markdown("<div style='font-size:0.78rem;color:#60a5fa;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px 0;'>🔑 API Key</div>", unsafe_allow_html=True)
 
-    # Auto-load from Streamlit secrets if available (cloud deployment)
-    # Falls back to manual input for local use
-    secret_key_map = {
-        "groq"  : "GROQ_API_KEY",
-        "gemini": "GEMINI_API_KEY",
-        "openai": "OPENAI_API_KEY",
-        "claude": "CLAUDE_API_KEY",
-    }
-    default_key = ""
+
+
+    # API key — auto from secrets on cloud, manual input locally
+    api_key = ""
     try:
-        default_key = st.secrets.get(secret_key_map[provider], "")
+        import streamlit.runtime.secrets as _sec
+        _store = _sec.SecretsManager()
+        secret_map = {"groq":"GROQ_API_KEY","gemini":"GEMINI_API_KEY","openai":"OPENAI_API_KEY","claude":"CLAUDE_API_KEY"}
+        api_key = _store[secret_map[provider]]
     except Exception:
-        default_key = ""
+        api_key = ""
 
-    api_key = st.text_input(
-        f"{provider.upper()} API Key",
-        type="password",
-        value=default_key,
-        placeholder="Auto-filled from secrets or paste manually...",
-        help={"groq":"FREE — get at console.groq.com","gemini":"Free tier — aistudio.google.com",
-              "openai":"Paid — platform.openai.com","claude":"Paid — console.anthropic.com"}[provider]
-    )
-
-    # Show status
-    if default_key and api_key == default_key:
-        st.markdown("<div style='font-size:0.75rem;color:#22c55e;margin:-8px 0 8px 0;'>✅ Key loaded from secrets automatically</div>", unsafe_allow_html=True)
-    elif api_key:
-        masked = api_key[:4] + "•" * (len(api_key) - 8) + api_key[-4:] if len(api_key) > 8 else "•" * len(api_key)
-        st.markdown(f"<div style='font-size:0.75rem;color:#22c55e;margin:-8px 0 8px 0;'>✅ Key entered: {masked}</div>", unsafe_allow_html=True)
+    if api_key:
+        st.markdown("<div style='font-size:0.75rem;color:#22c55e;margin:6px 0 12px 0;'>✅ API key loaded securely from secrets</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div style='font-size:0.75rem;color:#f59e0b;margin:-8px 0 8px 0;'>⚠️ No key found — paste your key above</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.78rem;color:#60a5fa;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px 0;'>🔑 API Key</div>", unsafe_allow_html=True)
+        api_key = st.text_input(
+            f"{provider.upper()} API Key",
+            type="password",
+            placeholder="Paste your API key here...",
+            help={"groq":"FREE — get at console.groq.com","gemini":"Free tier — aistudio.google.com",
+                  "openai":"Paid — platform.openai.com","claude":"Paid — console.anthropic.com"}[provider]
+        )
+        if api_key:
+            masked = api_key[:4] + "•" * (len(api_key) - 8) + api_key[-4:] if len(api_key) > 8 else "•" * len(api_key)
+            st.markdown(f"<div style='font-size:0.75rem;color:#22c55e;margin:-8px 0 8px 0;'>✅ Key entered: {masked}</div>", unsafe_allow_html=True)
 
-    # Paths hidden inside expander — cleaner UI
     with st.expander("⚙️ Advanced: Model Paths", expanded=False):
         model_path = st.text_input(
             "BERT Model Path",
-            value=r"D:\project_s",
+            value=r"C:\project_s",
             help="Folder containing bert_best.pt and tokenizer files",
-            placeholder=r"e.g. D:\project_s"
+            placeholder=r"e.g. C:\project_s"
         )
         data_path = st.text_input(
             "Data Path",
-            value=r"D:\project_s\clinc_oos\pre_processed",
+            value=r"C:\project_s\clinc_oos\pre_processed",
             help="Folder containing intent_label_map.json",
-            placeholder=r"e.g. D:\project_s\clinc_oos\pre_processed"
+            placeholder=r"e.g. C:\project_s\clinc_oos\pre_processed"
         )
         st.markdown("<div style='font-size:0.72rem;color:#475569;margin-top:4px;'>These paths are only used locally and never sent anywhere.</div>", unsafe_allow_html=True)
 
@@ -671,7 +664,7 @@ st.markdown("""
 # ─────────────────────────────────────────────
 if load_btn:
     if not api_key:
-        st.error(f"Please enter your {provider.upper()} API key in the sidebar.")
+        st.warning("Please paste your API key in the sidebar to continue.")
     else:
         with st.spinner("Loading BERT model... (~10 seconds on first load)"):
             try:
