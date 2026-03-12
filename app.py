@@ -51,6 +51,13 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 [data-testid="stSidebar"] {
     background: #0f1628;
     border-right: 1px solid #1e2d4a;
+    display: block !important;
+    visibility: visible !important;
+    min-width: 260px !important;
+    transform: none !important;
+}
+[data-testid="collapsedControl"] {
+    display: none !important;
 }
 [data-testid="stSidebar"] .stMarkdown h2,
 [data-testid="stSidebar"] .stMarkdown h3 { color: #60a5fa; }
