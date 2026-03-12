@@ -547,17 +547,38 @@ with st.sidebar:
                             index=0, label_visibility="collapsed",
                             help="Groq is free and recommended")
     st.markdown("<div style='font-size:0.78rem;color:#60a5fa;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px 0;'>🔑 API Key</div>", unsafe_allow_html=True)
-    api_key  = st.text_input(
+
+    # Auto-load from Streamlit secrets if available (cloud deployment)
+    # Falls back to manual input for local use
+    secret_key_map = {
+        "groq"  : "GROQ_API_KEY",
+        "gemini": "GEMINI_API_KEY",
+        "openai": "OPENAI_API_KEY",
+        "claude": "CLAUDE_API_KEY",
+    }
+    default_key = ""
+    try:
+        default_key = st.secrets.get(secret_key_map[provider], "")
+    except Exception:
+        default_key = ""
+
+    api_key = st.text_input(
         f"{provider.upper()} API Key",
         type="password",
-        placeholder="Paste your API key here...",
+        value=default_key,
+        placeholder="Auto-filled from secrets or paste manually...",
         help={"groq":"FREE — get at console.groq.com","gemini":"Free tier — aistudio.google.com",
               "openai":"Paid — platform.openai.com","claude":"Paid — console.anthropic.com"}[provider]
     )
-    # Show masked confirmation once key is entered
-    if api_key:
+
+    # Show status
+    if default_key and api_key == default_key:
+        st.markdown("<div style='font-size:0.75rem;color:#22c55e;margin:-8px 0 8px 0;'>✅ Key loaded from secrets automatically</div>", unsafe_allow_html=True)
+    elif api_key:
         masked = api_key[:4] + "•" * (len(api_key) - 8) + api_key[-4:] if len(api_key) > 8 else "•" * len(api_key)
         st.markdown(f"<div style='font-size:0.75rem;color:#22c55e;margin:-8px 0 8px 0;'>✅ Key entered: {masked}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div style='font-size:0.75rem;color:#f59e0b;margin:-8px 0 8px 0;'>⚠️ No key found — paste your key above</div>", unsafe_allow_html=True)
 
     # Paths hidden inside expander — cleaner UI
     with st.expander("⚙️ Advanced: Model Paths", expanded=False):
