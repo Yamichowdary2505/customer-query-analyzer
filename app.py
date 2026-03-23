@@ -1,6 +1,5 @@
 """
 Customer Query Analyzer — Streamlit App
-Final Year Project
 
 Run: streamlit run app.py
 """
@@ -543,9 +542,44 @@ class MultiTaskBERT(nn.Module):
         return self.intent_classifier(cls), self.sentiment_classifier(cls)
 
 
+HF_REPO = "YamiChowdary/customer-query-analyzer-bert"
+HF_BASE = f"https://huggingface.co/{HF_REPO}/resolve/main"
+
+def _is_cloud():
+    import os
+    return bool(
+        os.environ.get("STREAMLIT_SHARING_MODE") or
+        os.environ.get("IS_STREAMLIT_CLOUD") or
+        os.path.exists("/mount/src")
+    )
+
+def _download(fname, dest_dir):
+    import os
+    dest = f"{dest_dir}/{fname}"
+    if os.path.exists(dest):
+        return dest
+    os.makedirs(dest_dir, exist_ok=True)
+    r = requests.get(f"{HF_BASE}/{fname}", stream=True, timeout=120)
+    r.raise_for_status()
+    with open(dest, "wb") as f:
+        for chunk in r.iter_content(8192):
+            f.write(chunk)
+    return dest
+
 @st.cache_resource(show_spinner=False)
 def load_model(model_dir, data_dir):
+    import os
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if _is_cloud():
+        cache = "/tmp/bert_model"
+        st.info("Downloading model from HuggingFace... (~440MB, please wait 1-2 minutes)")
+        for fname in ["bert_best.pt", "bert_config.json", "tokenizer.json",
+                      "tokenizer_config.json", "intent_label_map.json"]:
+            _download(fname, cache)
+        model_dir = cache
+        data_dir  = cache
+
     with open(f"{data_dir}/intent_label_map.json") as f:
         id2intent = json.load(f)
     n       = len(id2intent)
@@ -790,11 +824,11 @@ with st.sidebar:
     with st.expander("Model Paths", expanded=False):
         model_path = st.text_input(
             "BERT model folder",
-            value=r"C:\Users\Sastra\Documents\project_s",
+            value=r"C:\project_s\models",
         )
         data_path = st.text_input(
             "Data folder",
-            value=r"C:\Users\Sastra\Documents\project_s\clinc_oos\pre_processed",
+            value=r"C:\project_s\clinc_oos\pre_processed",
         )
 
     load_btn = st.button("Load BERT Model", use_container_width=True)
