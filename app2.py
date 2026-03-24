@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 from transformers import BertTokenizer, BertModel
 from datetime import datetime
 import os
+from huggingface_hub import snapshot_download
 
 st.set_page_config(
     page_title="Customer Query Analyzer",
@@ -24,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS — keep header visible so sidebar toggle works
+# Custom CSS – keep header visible so sidebar toggle works
 st.markdown("""
 <style>
     /* Basic styling */
@@ -261,6 +262,7 @@ class MultiTaskBERT(nn.Module):
         cls = self.dropout(out.pooler_output)
         return self.intent_classifier(cls), self.sentiment_classifier(cls)
 
+
 @st.cache_resource(show_spinner=False)
 def load_model(model_dir, data_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -451,10 +453,8 @@ with st.sidebar:
     st.caption(f"{tier} · [Get key](https://{url})")
 
     st.markdown("#### API Key")
-    # Try to get key from secrets first
     api_key = ""
     if "api_key" not in st.session_state:
-        # Check if running on Streamlit Cloud
         if os.environ.get("STREAMLIT_SHARING_MODE") or os.path.exists("/mount/src"):
             try:
                 key_map = {
@@ -484,22 +484,57 @@ with st.sidebar:
 
     st.divider()
 
-    with st.expander("Model Paths", expanded=False):
-        # Use relative paths by default, but allow user override
-        default_model_dir = os.path.join(os.path.dirname(__file__), "models")
-        default_data_dir = os.path.join(os.path.dirname(__file__), "data")
-        model_path = st.text_input(
-            "BERT model folder",
-            value=default_model_dir,
-            help="Folder containing bert_best.pt and tokenizer files"
-        )
-        data_path = st.text_input(
-            "Data folder",
-            value=default_data_dir,
-            help="Folder containing intent_label_map.json"
-        )
+    st.markdown("#### Model Source")
+    model_source = st.radio(
+        "model_source",
+        options=["Local Paths", "Hugging Face Hub"],
+        index=0,
+        label_visibility="collapsed",
+        horizontal=True,
+    )
 
-    load_btn = st.button("Load BERT Model", use_container_width=True)
+    model_path = None
+    data_path = None
+    if model_source == "Local Paths":
+        with st.expander("Model Paths", expanded=False):
+            default_model_dir = os.path.join(os.path.dirname(__file__), "models")
+            default_data_dir = os.path.join(os.path.dirname(__file__), "data")
+            model_path = st.text_input(
+                "BERT model folder",
+                value=default_model_dir,
+                help="Folder containing bert_best.pt and tokenizer files"
+            )
+            data_path = st.text_input(
+                "Data folder",
+                value=default_data_dir,
+                help="Folder containing intent_label_map.json"
+            )
+    else:  # Hugging Face Hub
+        with st.expander("Hugging Face Repo", expanded=False):
+            repo_id = st.text_input(
+                "Repository ID",
+                value="YamiChowdry/customer-query-analyzer-bert",
+                help="Hugging Face repo name (e.g., YamiChowdry/customer-query-analyzer-bert)"
+            )
+            if st.button("Download Model from Hub", use_container_width=True):
+                with st.spinner("Downloading model from Hugging Face Hub..."):
+                    try:
+                        # Download the entire repo into a local cache
+                        cache_dir = os.path.join(st.cache_data, "hf_models", repo_id.replace("/", "_"))
+                        os.makedirs(cache_dir, exist_ok=True)
+                        snapshot_download(repo_id=repo_id, local_dir=cache_dir, local_dir_use_symlinks=False)
+                        st.session_state.hf_cache_dir = cache_dir
+                        st.success(f"Model downloaded to {cache_dir}")
+                    except Exception as e:
+                        st.error(f"Download failed: {e}")
+            if "hf_cache_dir" in st.session_state:
+                model_path = st.session_state.hf_cache_dir
+                data_path = st.session_state.hf_cache_dir
+                st.info(f"Using cached model: {model_path}")
+            else:
+                st.info("Click the button above to download the model.")
+
+    load_btn = st.button("Load BERT Model", use_container_width=True, disabled=(model_source == "Hugging Face Hub" and not model_path))
 
     st.divider()
     st.markdown("#### Session Statistics")
@@ -577,33 +612,58 @@ if load_btn:
     if not api_key:
         st.warning("Enter your API key before loading.")
     else:
-        # Check paths existence
-        bert_file = os.path.join(model_path, "bert_best.pt")
-        map_file = os.path.join(data_path, "intent_label_map.json")
-        if not os.path.exists(model_path):
-            st.error(f"Model folder not found: {model_path}\n\nOpen 'Model Paths' in sidebar and check the folder path.")
-        elif not os.path.exists(bert_file):
-            st.error(f"bert_best.pt not found in: {model_path}\n\nMake sure bert_best.pt is in that folder.")
-        elif not os.path.exists(map_file):
-            st.error(f"intent_label_map.json not found in: {data_path}\n\nCheck the Data folder path.")
-        else:
-            with st.spinner("Loading BERT model — first load takes ~15 seconds..."):
-                try:
-                    mdl, tok, i2i, oid, dev = load_model(model_path, data_path)
-                    st.session_state.update({
-                        "bert_loaded": True,
-                        "model": mdl,
-                        "tokenizer": tok,
-                        "id2intent": i2i,
-                        "oos_id": oid,
-                        "device": dev,
-                        "provider": provider,
-                        "api_key": api_key,
-                    })
-                    st.success(f"BERT loaded — {len(i2i)} intents | {str(dev).upper()} | {provider.upper()} ({MODELS[provider]})")
-                except Exception as e:
-                    st.error(f"Load failed: {e}")
-                    st.info("Check that bert_best.pt, tokenizer files, and intent_label_map.json are all present.")
+        if model_source == "Local Paths":
+            if not model_path or not data_path:
+                st.warning("Please provide model and data folder paths.")
+            else:
+                bert_file = os.path.join(model_path, "bert_best.pt")
+                map_file = os.path.join(data_path, "intent_label_map.json")
+                if not os.path.exists(model_path):
+                    st.error(f"Model folder not found: {model_path}")
+                elif not os.path.exists(bert_file):
+                    st.error(f"bert_best.pt not found in: {model_path}")
+                elif not os.path.exists(map_file):
+                    st.error(f"intent_label_map.json not found in: {data_path}")
+                else:
+                    with st.spinner("Loading BERT model — first load takes ~15 seconds..."):
+                        try:
+                            mdl, tok, i2i, oid, dev = load_model(model_path, data_path)
+                            st.session_state.update({
+                                "bert_loaded": True,
+                                "model": mdl,
+                                "tokenizer": tok,
+                                "id2intent": i2i,
+                                "oos_id": oid,
+                                "device": dev,
+                                "provider": provider,
+                                "api_key": api_key,
+                            })
+                            st.success(f"BERT loaded — {len(i2i)} intents | {str(dev).upper()} | {provider.upper()} ({MODELS[provider]})")
+                        except Exception as e:
+                            st.error(f"Load failed: {e}")
+                            st.info("Check that bert_best.pt, tokenizer files, and intent_label_map.json are all present.")
+        else:  # Hugging Face Hub
+            if not model_path:
+                st.warning("Please download the model from Hugging Face Hub first.")
+            else:
+                # model_path and data_path are the same (cache directory)
+                with st.spinner("Loading BERT model from Hugging Face cache..."):
+                    try:
+                        mdl, tok, i2i, oid, dev = load_model(model_path, model_path)
+                        st.session_state.update({
+                            "bert_loaded": True,
+                            "model": mdl,
+                            "tokenizer": tok,
+                            "id2intent": i2i,
+                            "oos_id": oid,
+                            "device": dev,
+                            "provider": provider,
+                            "api_key": api_key,
+                        })
+                        st.success(f"BERT loaded — {len(i2i)} intents | {str(dev).upper()} | {provider.upper()} ({MODELS[provider]})")
+                    except Exception as e:
+                        st.error(f"Load failed: {e}")
+                        st.info("Ensure the downloaded folder contains bert_best.pt, intent_label_map.json, and tokenizer files.")
 
 # ─────────────────────────────────────────────
 # PAGE HEADER
