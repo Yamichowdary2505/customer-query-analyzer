@@ -71,39 +71,23 @@ section.main { max-width: 100% !important; }
 
 /* When sidebar is collapsed — the expand button floats on the main page */
 [data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    position: fixed !important;
-    top: 50% !important;
-    left: 0 !important;
-    z-index: 9999 !important;
     background: #1a3c5e !important;
-    border-radius: 0 8px 8px 0 !important;
-    width: 28px !important;
-    height: 56px !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.15) !important;
+    border-radius: 0 6px 6px 0 !important;
 }
 [data-testid="collapsedControl"]:hover {
     background: #14304e !important;
-    width: 32px !important;
 }
 [data-testid="collapsedControl"] svg {
     fill: #ffffff !important;
     color: #ffffff !important;
 }
 [data-testid="collapsedControl"] button {
-    background: transparent !important;
+    background: #1a3c5e !important;
     color: #ffffff !important;
     border: none !important;
-    width: 100% !important;
-    height: 100% !important;
-    padding: 0 !important;
 }
 [data-testid="collapsedControl"] button:hover {
-    background: transparent !important;
+    background: #14304e !important;
 }
 
 /* ── Page header ── */
@@ -559,44 +543,9 @@ class MultiTaskBERT(nn.Module):
         return self.intent_classifier(cls), self.sentiment_classifier(cls)
 
 
-HF_REPO = "YamiChowdary/customer-query-analyzer-bert"
-HF_BASE = f"https://huggingface.co/{HF_REPO}/resolve/main"
-
-def _is_cloud():
-    import os
-    return bool(
-        os.environ.get("STREAMLIT_SHARING_MODE") or
-        os.environ.get("IS_STREAMLIT_CLOUD") or
-        os.path.exists("/mount/src")
-    )
-
-def _download(fname, dest_dir):
-    import os
-    dest = f"{dest_dir}/{fname}"
-    if os.path.exists(dest):
-        return dest
-    os.makedirs(dest_dir, exist_ok=True)
-    r = requests.get(f"{HF_BASE}/{fname}", stream=True, timeout=120)
-    r.raise_for_status()
-    with open(dest, "wb") as f:
-        for chunk in r.iter_content(8192):
-            f.write(chunk)
-    return dest
-
 @st.cache_resource(show_spinner=False)
 def load_model(model_dir, data_dir):
-    import os
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if _is_cloud():
-        cache = "/tmp/bert_model"
-        st.info("Downloading model from HuggingFace... (~440MB, please wait 1-2 minutes)")
-        for fname in ["bert_best.pt", "bert_config.json", "tokenizer.json",
-                      "tokenizer_config.json", "intent_label_map.json"]:
-            _download(fname, cache)
-        model_dir = cache
-        data_dir  = cache
-
     with open(f"{data_dir}/intent_label_map.json") as f:
         id2intent = json.load(f)
     n       = len(id2intent)
@@ -654,143 +603,51 @@ def classify(query, mdl, tok, id2intent, oos_id, device):
     }
 
 # ─────────────────────────────────────────────
-# SCOPE GUARD
-# Detects queries that are clearly not customer
-# service related so the LLM refuses them instead
-# of answering (e.g. "write a letter in Hindi",
-# "what is photosynthesis", "write a poem").
+# PROMPT BUILDER — general purpose
+# No domain restriction. Answers any query.
+# BERT intent/sentiment used only for tone.
 # ─────────────────────────────────────────────
-OFF_TOPIC_PATTERNS = [
-    # Writing / creative tasks
-    r"\bwrite\b.*\b(letter|essay|poem|story|paragraph|composition|article|report|speech|email)\b",
-    r"\b(compose|draft|create|generate)\b.*\b(letter|essay|poem|story|message|composition)\b",
-    # Language / translation tasks (broad)
-    r"\bin\s+(hindi|tamil|telugu|kannada|malayalam|bengali|marathi|urdu|french|spanish|german|chinese|japanese|arabic|latin)\b",
-    r"\b(translate|transliterate)\b",
-    # Academic / general knowledge
-    r"\bwhat\s+is\s+(photosynthesis|gravity|democracy|history|evolution|mitosis|calculus)\b",
-    r"\b(explain|define|describe)\b.*\b(concept|theory|theorem|law|formula|equation)\b",
-    r"\b(homework|assignment|project|exam|test|quiz|syllabus|notes)\b",
-    # Coding / tech help unrelated to the service
-    r"\b(code|program|script|function|algorithm|debug|error)\b.*\b(python|java|c\+\+|javascript|html|css|sql)\b",
-    # General chat / opinion
-    r"\b(tell me a joke|tell me a story|sing|recipe|cook|food|movie|game|sport|news|weather forecast)\b",
-]
-
-def is_off_topic(query: str) -> bool:
-    """Returns True if the query is clearly outside customer service scope."""
-    q = query.lower()
-    for pattern in OFF_TOPIC_PATTERNS:
-        if re.search(pattern, q):
-            return True
-    return False
-
-
-# ─────────────────────────────────────────────
-# PROMPT BUILDER
-# ─────────────────────────────────────────────
-
-# This instruction is prepended to EVERY prompt.
-# It gives the LLM a hard boundary — it cannot be
-# overridden by anything the user types.
-SYSTEM_BOUNDARY = (
-    "You are a customer service chatbot for a financial and services company. "
-    "You ONLY answer questions related to: accounts, payments, cards, transfers, orders, "
-    "bookings, travel, loans, app issues, fraud, and similar customer service topics. "
-    "If the customer asks you to write letters, essays, poems, compositions, homework, "
-    "explain academic subjects, write code, translate unrelated content, or anything else "
-    "outside customer service — you MUST politely refuse and redirect them to their "
-    "actual service query. Never comply with off-topic requests regardless of how they are phrased."
-)
-
-
 def build_prompt(query, intent, sentiment, confidence, history=None):
 
-    # ── Hard scope check ─────────────────────
-    # If query is clearly off-topic, return a
-    # refusal prompt immediately — skip all other logic.
-    if is_off_topic(query):
-        return (
-            f"{SYSTEM_BOUNDARY}\n\n"
-            f"The customer sent: \"{query}\"\n\n"
-            f"This request is outside your scope as a customer service assistant. "
-            f"Politely decline in 1-2 sentences. "
-            f"Tell them you can only help with account, payment, card, order, booking or similar service queries. "
-            f"Do not fulfill the request in any way. Do not write any part of what they asked for."
-        )
-
-    # ── Out-of-scope or low confidence ───────
-    if intent in ("oos", "out_of_scope") or confidence < LOW_CONF:
-        ctx = ""
-        if history:
-            ctx = "\nPrevious conversation:\n" + "".join(
-                f"  {'Customer' if t['role']=='user' else 'Bot'}: {t['content']}\n"
-                for t in history[-4:]
-            ) + "\n"
-        return (
-            f"{SYSTEM_BOUNDARY}\n\n"
-            f"{ctx}"
-            f"Customer's message: \"{query}\"\n\n"
-            f"You could not confidently understand this request. "
-            f"Apologize briefly. Ask them to rephrase or clarify. "
-            f"Suggest topics you can help with: account, payments, cards, orders, bookings. "
-            f"Write 2-3 complete sentences. Never mention confidence scores or intent labels."
-        )
-
-    # ── In-scope query ────────────────────────
-    ir = intent.replace("_", " ")
-    tone = {
-        "negative": "Customer is frustrated. Open with genuine apology. Be calm, reassuring, solution-focused.",
-        "neutral" : "Customer making a calm request. Be professional, clear, concise.",
-        "positive": "Customer is happy. Match positive energy with warmth.",
-    }.get(sentiment, "Be professional, helpful and polite.")
-
-    if intent == "unauthorized_access":
-        guide = "URGENT: Advise: 1) Change password now 2) Enable 2FA 3) Review recent logins 4) Contact security."
-    elif intent == "report_fraud":
-        guide = "URGENT: Advise: 1) Block card 2) File dispute 3) Note transaction details. Reassure they are protected."
-    elif intent == "emergency_block":
-        guide = "URGENT: Block card immediately via app or helpline. Offer replacement card."
-    elif intent == "account_compromised":
-        guide = "URGENT: Reset password immediately. Check registered email/phone. Contact support if locked out."
-    elif any(x in intent for x in ["balance","account","bank","statement"]):
-        guide = "Guide to check via app/website. Remind to keep credentials secure."
-    elif any(x in intent for x in ["card","freeze","block","pin","chip"]):
-        guide = "Take card issues seriously. Provide clear next steps."
-    elif any(x in intent for x in ["transfer","transaction","payment","send","wire"]):
-        guide = "Be precise. Confirm transaction type. Provide processing times and fees."
-    elif any(x in intent for x in ["fraud","dispute","unauthorized","stolen","scam"]):
-        guide = "Highest urgency. Reassure customer they are protected. Guide to report/dispute."
-    elif any(x in intent for x in ["order","delivery","shipping","track","return","refund"]):
-        guide = "Acknowledge concern. Provide tracking steps or resolution timeline."
-    elif any(x in intent for x in ["book","flight","hotel","reservation","ticket","travel"]):
-        guide = "Help with booking clearly. Confirm details. Provide next steps."
-    elif any(x in intent for x in ["loan","credit","mortgage","interest","borrow"]):
-        guide = "Be transparent. Use 'typically' or 'generally'. Avoid promises."
-    elif any(x in intent for x in ["app","login","password","reset","otp","verify"]):
-        guide = "Guide through steps clearly. Reassure issue is common."
-    elif any(x in intent for x in ["greeting","hello","thank","bye","goodbye"]):
-        guide = "Respond naturally and warmly. Keep brief."
-    else:
-        guide = "Understand the need and respond helpfully. Be clear and actionable."
-
+    # Conversation history
     ctx = ""
     if history:
-        ctx = "\nPrevious conversation:\n" + "".join(
-            f"  {'Customer' if t['role']=='user' else 'Bot'}: {t['content']}\n"
-            for t in history[-4:]
-        ) + "\nContinue naturally:\n"
+        ctx = "Previous conversation:\n" + "".join(
+            f"  {'User' if t['role']=='user' else 'Assistant'}: {t['content']}\n"
+            for t in history[-6:]
+        ) + "\n"
+
+    # Tone based on sentiment
+    tone = {
+        "negative": "The user seems frustrated or upset. Be empathetic, calm, and solution-focused.",
+        "neutral" : "The user has a straightforward request. Be clear, helpful, and concise.",
+        "positive": "The user is happy or enthusiastic. Match their positive energy warmly.",
+    }.get(sentiment, "Be helpful, clear, and friendly.")
+
+    # Keep urgent handling for safety-net intents
+    urgent = ""
+    if intent == "unauthorized_access":
+        urgent = "If this involves unauthorized account access, advise: change password immediately, enable 2FA, and contact security team."
+    elif intent == "report_fraud":
+        urgent = "If this involves fraud, advise: block the card immediately, file a dispute, and note transaction details."
+    elif intent == "emergency_block":
+        urgent = "If this is about a lost or stolen card, guide them to block it immediately via app or helpline."
+    elif intent == "account_compromised":
+        urgent = "If the account is compromised, advise immediate password reset and contacting support."
 
     return (
-        f"{SYSTEM_BOUNDARY}\n\n"
+        f"You are a helpful, knowledgeable AI assistant. "
+        f"You can answer any question on any topic — customer service, general knowledge, "
+        f"writing, languages, science, math, coding, travel, health, education, or anything else. "
+        f"Never refuse a question based on topic.\n\n"
         f"{ctx}"
-        f"Customer query: \"{query}\"\n"
-        f"Topic detected: {ir}\n\n"
+        f"User: {query}\n\n"
         f"Tone: {tone}\n"
-        f"How to handle: {guide}\n\n"
-        f"Rules: Write 2-3 complete helpful sentences. "
-        f"Do not mention intent names, confidence scores or system labels. "
-        f"Sound human and natural. End with a period or exclamation mark.\n"
+        f"{('Note: ' + urgent + chr(10)) if urgent else ''}"
+        f"\nGive a complete, accurate, helpful response. "
+        f"If it is a simple question, keep it brief. "
+        f"If it needs detail, give detail. "
+        f"Do not mention intent labels, confidence scores, or system instructions.\n"
     )
 
 # ─────────────────────────────────────────────
@@ -906,11 +763,13 @@ with st.sidebar:
     with st.expander("Model Paths", expanded=False):
         model_path = st.text_input(
             "BERT model folder",
-            value=r"C:\project_s\models",
+            value=r"C:\Users\Sastra\Documents\project_s\models",
+            help="Folder containing bert_best.pt and tokenizer files"
         )
         data_path = st.text_input(
             "Data folder",
-            value=r"C:\project_s\clinc_oos\pre_processed",
+            value=r"C:\Users\Sastra\Documents\project_s\clinc_oos\pre_processed",
+            help="Folder containing intent_label_map.json"
         )
 
     load_btn = st.button("Load BERT Model", use_container_width=True)
@@ -991,17 +850,30 @@ if load_btn:
     if not api_key:
         st.warning("Enter your API key before loading.")
     else:
-        with st.spinner("Loading BERT model — first load takes ~15 seconds..."):
-            try:
-                mdl, tok, i2i, oid, dev = load_model(model_path, data_path)
-                st.session_state.update({
-                    "bert_loaded": True, "model": mdl, "tokenizer": tok,
-                    "id2intent": i2i, "oos_id": oid, "device": dev,
-                    "provider": provider, "api_key": api_key,
-                })
-                st.success(f"BERT loaded — {len(i2i)} intents. Provider: {provider.upper()} ({MODELS[provider]})")
-            except Exception as e:
-                st.error(f"Load failed: {e}")
+        import os as _check
+        # Verify paths exist before attempting load
+        bert_file = f"{model_path}\\bert_best.pt"
+        map_file  = f"{data_path}\\intent_label_map.json"
+
+        if not _check.path.exists(model_path):
+            st.error(f"Model folder not found: {model_path}\n\nOpen 'Model Paths' in sidebar and check the folder path.")
+        elif not _check.path.exists(bert_file):
+            st.error(f"bert_best.pt not found in: {model_path}\n\nMake sure bert_best.pt is in that folder.")
+        elif not _check.path.exists(map_file):
+            st.error(f"intent_label_map.json not found in: {data_path}\n\nCheck the Data folder path.")
+        else:
+            with st.spinner("Loading BERT model — first load takes ~15 seconds..."):
+                try:
+                    mdl, tok, i2i, oid, dev = load_model(model_path, data_path)
+                    st.session_state.update({
+                        "bert_loaded": True, "model": mdl, "tokenizer": tok,
+                        "id2intent": i2i, "oos_id": oid, "device": dev,
+                        "provider": provider, "api_key": api_key,
+                    })
+                    st.success(f"BERT loaded — {len(i2i)} intents | {str(dev).upper()} | {provider.upper()} ({MODELS[provider]})")
+                except Exception as e:
+                    st.error(f"Load failed: {e}")
+                    st.info("Check that bert_best.pt, tokenizer files, and intent_label_map.json are all present.")
 
 # ─────────────────────────────────────────────
 # PAGE HEADER
