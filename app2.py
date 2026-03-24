@@ -827,7 +827,6 @@ with st.sidebar:
         Sentiment Accuracy: <b style='color:#166534;'>93.13%</b><br>
         Dataset &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : CLINC150 (151 intents)<br>
         Architecture &nbsp;&nbsp;&nbsp;: BERT Multi-task<br>
-        Training time &nbsp;&nbsp;: 10.8 min, RTX 2000 Ada
     </div>
     """, unsafe_allow_html=True)
 
