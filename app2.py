@@ -422,7 +422,7 @@ MODELS = {
 }
 
 # Hugging Face repository ID (make sure it's correct and public)
-HF_REPO_ID = "YamiChowdry/customer-query-analyzer-bert"
+HF_REPO_ID = "YamiChowdary/customer-query-analyzer-bert"
 
 # ============================================================
 # SAFETY NET
