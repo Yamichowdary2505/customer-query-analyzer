@@ -71,23 +71,39 @@ section.main { max-width: 100% !important; }
 
 /* When sidebar is collapsed — the expand button floats on the main page */
 [data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 0 !important;
+    z-index: 9999 !important;
     background: #1a3c5e !important;
-    border-radius: 0 6px 6px 0 !important;
+    border-radius: 0 8px 8px 0 !important;
+    width: 28px !important;
+    height: 56px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.15) !important;
 }
 [data-testid="collapsedControl"]:hover {
     background: #14304e !important;
+    width: 32px !important;
 }
 [data-testid="collapsedControl"] svg {
     fill: #ffffff !important;
     color: #ffffff !important;
 }
 [data-testid="collapsedControl"] button {
-    background: #1a3c5e !important;
+    background: transparent !important;
     color: #ffffff !important;
     border: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
 }
 [data-testid="collapsedControl"] button:hover {
-    background: #14304e !important;
+    background: transparent !important;
 }
 
 /* ── Page header ── */
