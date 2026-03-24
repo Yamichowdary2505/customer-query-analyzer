@@ -421,7 +421,7 @@ MODELS = {
     "claude": "claude-haiku-4-5-20251001",
 }
 
-# Hugging Face repository ID
+# Hugging Face repository ID (make sure it's correct and public)
 HF_REPO_ID = "YamiChowdry/customer-query-analyzer-bert"
 
 # ============================================================
@@ -841,8 +841,8 @@ if load_btn:
         with st.spinner("Loading BERT model... (first time may take a minute)"):
             try:
                 if on_cloud:
-                    # Download from Hugging Face
-                    cache_dir = os.path.join(st.cache_data, "hf_models", HF_REPO_ID.replace("/", "_"))
+                    # Use a persistent cache directory (inside the app's folder)
+                    cache_dir = os.path.join(os.getcwd(), ".cache", "hf_models", HF_REPO_ID.replace("/", "_"))
                     os.makedirs(cache_dir, exist_ok=True)
                     st.info("Downloading model from Hugging Face Hub...")
                     snapshot_download(
