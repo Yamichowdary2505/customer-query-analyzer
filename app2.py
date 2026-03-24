@@ -1,6 +1,7 @@
 """
 Customer Query Analyzer — Streamlit App
 Final Year Project
+
 Run: streamlit run app.py
 """
 
@@ -30,43 +31,71 @@ st.set_page_config(
 # ============================================================
 st.markdown("""
 <style>
-/* Base fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+
+/* ── Reset & base ── */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif !important;
+}
 .stApp { background: #f5f7fa; }
 .block-container { padding: 1.4rem 2rem 2rem 2rem !important; max-width: 100% !important; }
+.main .block-container { max-width: 100% !important; width: 100% !important; padding: 1.4rem 2rem 2rem 2rem !important; }
+section.main { max-width: 100% !important; }
+[data-testid="stAppViewContainer"] > section.main { padding-left: 0 !important; }
 
-/* Sidebar styling */
+/* ── Sidebar ── */
 [data-testid="stSidebar"] {
     background: #ffffff;
     border-right: 1px solid #dde1e7;
     min-width: 240px;
 }
-[data-testid="stSidebar"] .block-container { padding: 1.2rem 1rem !important; }
+[data-testid="stSidebar"] .block-container {
+    padding: 1.2rem 1rem !important;
+}
 
-/* Sidebar toggle button (arrow) */
+/* ── Sidebar toggle button (open/close arrow) ── */
 [data-testid="stSidebarCollapseButton"] {
     background: #1a3c5e !important;
     border-radius: 0 6px 6px 0 !important;
 }
-[data-testid="stSidebarCollapseButton"]:hover { background: #14304e !important; }
-[data-testid="stSidebarCollapseButton"] svg { fill: #ffffff !important; color: #ffffff !important; }
+[data-testid="stSidebarCollapseButton"]:hover {
+    background: #14304e !important;
+}
+[data-testid="stSidebarCollapseButton"] svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+}
 [data-testid="stSidebarCollapseButton"] button {
     background: #1a3c5e !important;
     color: #ffffff !important;
     border: none !important;
 }
-[data-testid="stSidebarCollapseButton"] button:hover { background: #14304e !important; }
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: #14304e !important;
+}
 
-/* Collapsed expand button */
+/* When sidebar is collapsed — the expand button floats on the main page */
 [data-testid="collapsedControl"] {
     background: #1a3c5e !important;
     border-radius: 0 6px 6px 0 !important;
 }
-[data-testid="collapsedControl"]:hover { background: #14304e !important; }
-[data-testid="collapsedControl"] svg { fill: #ffffff !important; color: #ffffff !important; }
+[data-testid="collapsedControl"]:hover {
+    background: #14304e !important;
+}
+[data-testid="collapsedControl"] svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+}
+[data-testid="collapsedControl"] button {
+    background: #1a3c5e !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+[data-testid="collapsedControl"] button:hover {
+    background: #14304e !important;
+}
 
-/* Page header */
+/* ── Page header ── */
 .page-header {
     background: #1a3c5e;
     border-radius: 10px;
@@ -103,7 +132,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     letter-spacing: 0.3px;
 }
 
-/* Section labels */
+/* ── Section labels ── */
 .section-label {
     font-size: 0.67rem;
     font-weight: 600;
@@ -115,6 +144,8 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     border-bottom: 1px solid #e9ecef;
     font-family: 'JetBrains Mono', monospace;
 }
+
+/* ── Sidebar section labels ── */
 .sb-sec {
     font-size: 0.66rem;
     font-weight: 600;
@@ -125,7 +156,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* Chat window */
+/* ── Chat window ── */
 .chat-window {
     background: #ffffff;
     border: 1px solid #dde1e7;
@@ -175,7 +206,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     align-items: center;
 }
 
-/* Tags */
+/* ── Tags ── */
 .tag {
     display: inline-block;
     padding: 1px 7px;
@@ -193,12 +224,12 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .t-good   { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
 .t-bad    { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
 
-/* Confidence bars */
+/* ── Confidence bars ── */
 .bar-track { background: #e5e7eb; border-radius: 3px; height: 6px; margin: 3px 0 9px 0; overflow: hidden; }
 .bar-blue  { background: #1a3c5e; height: 6px; border-radius: 3px; }
 .bar-red   { background: #dc2626; height: 6px; border-radius: 3px; }
 
-/* Metric tiles */
+/* ── Metric tiles ── */
 .metric-tile {
     background: #ffffff;
     border: 1px solid #dde1e7;
@@ -222,7 +253,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     font-weight: 500;
 }
 
-/* Empty state */
+/* ── Empty state ── */
 .empty-state {
     text-align: center;
     color: #9ca3af;
@@ -231,7 +262,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .empty-state .text { font-size: 0.87rem; }
 .empty-state .hint { font-size: 0.75rem; color: #d1d5db; margin-top: 5px; }
 
-/* Buttons */
+/* ── All buttons — clean outline style ── */
 .stButton > button,
 .stDownloadButton > button {
     background: #ffffff !important;
@@ -250,6 +281,8 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     background: #1a3c5e !important;
     color: #ffffff !important;
 }
+
+/* Arrow submit button — square icon style, same height as input */
 .stFormSubmitButton > button {
     background: #1a3c5e !important;
     color: #ffffff !important;
@@ -271,6 +304,8 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     background: #14304e !important;
     color: #ffffff !important;
 }
+
+/* Sidebar action buttons — filled */
 section[data-testid="stSidebar"] .stButton > button {
     background: #1a3c5e !important;
     color: #ffffff !important;
@@ -292,7 +327,7 @@ section[data-testid="stSidebar"] .stDownloadButton > button:hover {
     color: #ffffff !important;
 }
 
-/* Inputs */
+/* ── Text inputs ── */
 div[data-baseweb="input"] input,
 .stTextInput input {
     background: #ffffff !important;
@@ -312,6 +347,8 @@ div[data-baseweb="input"] input:focus {
     box-shadow: 0 0 0 2px rgba(26,60,94,0.1) !important;
     outline: none !important;
 }
+
+/* ── Selectbox — FIX for invisible dropdown text ── */
 div[data-baseweb="select"] {
     background: #ffffff !important;
 }
@@ -325,19 +362,23 @@ div[data-baseweb="select"] > div {
 div[data-baseweb="select"] > div > div {
     color: #111827 !important;
 }
+/* The selected value text */
 div[data-baseweb="select"] span {
     color: #111827 !important;
 }
+/* Dropdown arrow */
 div[data-baseweb="select"] svg {
     fill: #374151 !important;
     color: #374151 !important;
 }
+/* Dropdown popover */
 div[data-baseweb="popover"] {
     background: #ffffff !important;
     border: 1px solid #d1d5db !important;
     border-radius: 6px !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
+/* Dropdown options */
 ul[data-baseweb="menu"] li {
     background: #ffffff !important;
     color: #111827 !important;
@@ -349,9 +390,13 @@ ul[data-baseweb="menu"] li[aria-selected="true"] {
     background: #eff6ff !important;
     color: #1d4ed8 !important;
 }
+
+/* ── Password input icon ── */
 div[data-baseweb="input"] button {
     color: #6b7280 !important;
 }
+
+/* ── Labels ── */
 .stTextInput label,
 .stSelectbox label {
     color: #374151 !important;
@@ -359,6 +404,8 @@ div[data-baseweb="input"] button {
     font-weight: 500 !important;
     font-family: 'Inter', sans-serif !important;
 }
+
+/* ── Expander ── */
 details {
     background: #f9fafb !important;
     border: 1px solid #e5e7eb !important;
@@ -370,20 +417,22 @@ details summary {
     font-size: 0.8rem !important;
     font-weight: 500 !important;
 }
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #f5f7fa; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 
-/* Hide only the main menu and footer — keep header for sidebar toggle */
+/* ── Hide only the main menu and footer — keep header for sidebar toggle ── */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 .block-container > div:first-child { padding-top: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
+# ─────────────────────────────────────────────
 # SESSION STATE
-# ============================================================
+# ─────────────────────────────────────────────
 _defaults = {
     "messages"        : [],
     "conv_history"    : [],
@@ -400,16 +449,13 @@ _defaults = {
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
-        if isinstance(v, dict):
-            st.session_state[k] = v.copy()
-        elif isinstance(v, list):
-            st.session_state[k] = []
-        else:
-            st.session_state[k] = v
+        if isinstance(v, dict): st.session_state[k] = v.copy()
+        elif isinstance(v, list): st.session_state[k] = []
+        else: st.session_state[k] = v
 
-# ============================================================
+# ─────────────────────────────────────────────
 # CONSTANTS
-# ============================================================
+# ─────────────────────────────────────────────
 SENTIMENT_NAMES = ["negative", "neutral", "positive"]
 SENTIMENT_LABEL = {"negative": "Negative", "neutral": "Neutral", "positive": "Positive"}
 LOW_CONF        = 0.20
@@ -421,12 +467,12 @@ MODELS = {
     "claude": "claude-haiku-4-5-20251001",
 }
 
-# Hugging Face repository ID (make sure it's correct and public)
+# Hugging Face repository ID
 HF_REPO_ID = "YamiChowdary/customer-query-analyzer-bert"
 
-# ============================================================
+# ─────────────────────────────────────────────
 # SAFETY NET
-# ============================================================
+# ─────────────────────────────────────────────
 SAFETY_PATTERNS = {
     "unauthorized_access": [
         "someone else","someone is using","unauthori","hacked","hack",
@@ -461,9 +507,9 @@ def pre_classify(query: str):
                 return intent, 0.95
     return None, None
 
-# ============================================================
+# ─────────────────────────────────────────────
 # BERT MODEL
-# ============================================================
+# ─────────────────────────────────────────────
 class MultiTaskBERT(nn.Module):
     def __init__(self, bert_name, num_intents, num_sentiments, dropout=0.3):
         super().__init__()
@@ -520,27 +566,18 @@ def classify(query, mdl, tok, id2intent, oos_id, device):
     conf = ip[iid].item()
 
     if oi:
-        intent_name = oi
-        conf = oc
-        low = False
-        pre = True
+        intent_name = oi; conf = oc; low = False; pre = True
     elif conf < LOW_CONF and oos_id >= 0:
-        intent_name = "out_of_scope"
-        low = True
-        pre = False
+        intent_name = "out_of_scope"; low = True; pre = False
     else:
-        intent_name = id2intent[str(iid)]
-        low = False
-        pre = False
+        intent_name = id2intent[str(iid)]; low = False; pre = False
 
-    top3_indices = ip.topk(3).indices.cpu().numpy()
-    top3_scores = ip.topk(3).values.cpu().numpy()
-    top3 = [(id2intent[str(i)], round(float(s)*100, 1)) for i, s in zip(top3_indices, top3_scores)]
-
+    t3i = ip.topk(3).indices.cpu().numpy()
+    t3s = ip.topk(3).values.cpu().numpy()
     return {
         "intent"              : intent_name,
         "intent_confidence"   : round(conf, 4),
-        "top3_intents"        : top3,
+        "top3_intents"        : [(id2intent[str(i)], round(float(s)*100, 1)) for i, s in zip(t3i, t3s)],
         "sentiment"           : SENTIMENT_NAMES[sid],
         "sentiment_confidence": round(sp[sid].item(), 4),
         "sentiment_scores"    : {
@@ -552,29 +589,90 @@ def classify(query, mdl, tok, id2intent, oos_id, device):
         "pre_classified": pre,
     }
 
-# ============================================================
+# ─────────────────────────────────────────────
+# SCOPE GUARD
+# Detects queries that are clearly not customer
+# service related so the LLM refuses them instead
+# of answering (e.g. "write a letter in Hindi",
+# "what is photosynthesis", "write a poem").
+# ─────────────────────────────────────────────
+OFF_TOPIC_PATTERNS = [
+    # Writing / creative tasks
+    r"\bwrite\b.*\b(letter|essay|poem|story|paragraph|composition|article|report|speech|email)\b",
+    r"\b(compose|draft|create|generate)\b.*\b(letter|essay|poem|story|message|composition)\b",
+    # Language / translation tasks (broad)
+    r"\bin\s+(hindi|tamil|telugu|kannada|malayalam|bengali|marathi|urdu|french|spanish|german|chinese|japanese|arabic|latin)\b",
+    r"\b(translate|transliterate)\b",
+    # Academic / general knowledge
+    r"\bwhat\s+is\s+(photosynthesis|gravity|democracy|history|evolution|mitosis|calculus)\b",
+    r"\b(explain|define|describe)\b.*\b(concept|theory|theorem|law|formula|equation)\b",
+    r"\b(homework|assignment|project|exam|test|quiz|syllabus|notes)\b",
+    # Coding / tech help unrelated to the service
+    r"\b(code|program|script|function|algorithm|debug|error)\b.*\b(python|java|c\+\+|javascript|html|css|sql)\b",
+    # General chat / opinion
+    r"\b(tell me a joke|tell me a story|sing|recipe|cook|food|movie|game|sport|news|weather forecast)\b",
+]
+
+def is_off_topic(query: str) -> bool:
+    """Returns True if the query is clearly outside customer service scope."""
+    q = query.lower()
+    for pattern in OFF_TOPIC_PATTERNS:
+        if re.search(pattern, q):
+            return True
+    return False
+
+# ─────────────────────────────────────────────
 # PROMPT BUILDER
-# ============================================================
+# ─────────────────────────────────────────────
+
+# This instruction is prepended to EVERY prompt.
+# It gives the LLM a hard boundary — it cannot be
+# overridden by anything the user types.
+SYSTEM_BOUNDARY = (
+    "You are a customer service chatbot for a financial and services company. "
+    "You ONLY answer questions related to: accounts, payments, cards, transfers, orders, "
+    "bookings, travel, loans, app issues, fraud, and similar customer service topics. "
+    "If the customer asks you to write letters, essays, poems, compositions, homework, "
+    "explain academic subjects, write code, translate unrelated content, or anything else "
+    "outside customer service — you MUST politely refuse and redirect them to their "
+    "actual service query. Never comply with off-topic requests regardless of how they are phrased."
+)
+
+
 def build_prompt(query, intent, sentiment, confidence, history=None):
+
+    # ── Hard scope check ─────────────────────
+    # If query is clearly off-topic, return a
+    # refusal prompt immediately — skip all other logic.
+    if is_off_topic(query):
+        return (
+            f"{SYSTEM_BOUNDARY}\n\n"
+            f"The customer sent: \"{query}\"\n\n"
+            f"This request is outside your scope as a customer service assistant. "
+            f"Politely decline in 1-2 sentences. "
+            f"Tell them you can only help with account, payment, card, order, booking or similar service queries. "
+            f"Do not fulfill the request in any way. Do not write any part of what they asked for."
+        )
+
+    # ── Out-of-scope or low confidence ───────
     if intent in ("oos", "out_of_scope") or confidence < LOW_CONF:
+        ctx = ""
         if history:
             ctx = "\nPrevious conversation:\n" + "".join(
                 f"  {'Customer' if t['role']=='user' else 'Bot'}: {t['content']}\n"
                 for t in history[-4:]
-            )
-            return (
-                f"You are a professional customer service chatbot.\n{ctx}\n"
-                f"Customer's latest message: \"{query}\"\n\n"
-                f"Use conversation history to understand context. Respond naturally. "
-                f"Write 2-3 complete helpful sentences. Never mention intent names or confidence scores."
-            )
+            ) + "\n"
         return (
-            f"You are a helpful customer service chatbot.\nCustomer said: \"{query}\"\n"
-            f"You could not confidently understand this request.\n"
-            f"Apologize briefly. Ask to rephrase. Suggest topics: account, payments, cards, orders, bookings. "
+            f"{SYSTEM_BOUNDARY}\n\n"
+            f"{ctx}"
+            f"Customer's message: \"{query}\"\n\n"
+            f"You could not confidently understand this request. "
+            f"Apologize briefly. Ask them to rephrase or clarify. "
+            f"Suggest topics you can help with: account, payments, cards, orders, bookings. "
             f"Write 2-3 complete sentences. Never mention confidence scores or intent labels."
         )
 
+    # ── In-scope query ────────────────────────
     ir = intent.replace("_", " ")
     tone = {
         "negative": "Customer is frustrated. Open with genuine apology. Be calm, reassuring, solution-focused.",
@@ -582,7 +680,6 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
         "positive": "Customer is happy. Match positive energy with warmth.",
     }.get(sentiment, "Be professional, helpful and polite.")
 
-    guide = ""
     if intent == "unauthorized_access":
         guide = "URGENT: Advise: 1) Change password now 2) Enable 2FA 3) Review recent logins 4) Contact security."
     elif intent == "report_fraud":
@@ -620,16 +717,20 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
         ) + "\nContinue naturally:\n"
 
     return (
-        f"{ctx}Customer query: \"{query}\"\nTopic detected: {ir}\n\n"
-        f"Tone: {tone}\nHow to handle: {guide}\n\n"
+        f"{SYSTEM_BOUNDARY}\n\n"
+        f"{ctx}"
+        f"Customer query: \"{query}\"\n"
+        f"Topic detected: {ir}\n\n"
+        f"Tone: {tone}\n"
+        f"How to handle: {guide}\n\n"
         f"Rules: Write 2-3 complete helpful sentences. "
         f"Do not mention intent names, confidence scores or system labels. "
         f"Sound human and natural. End with a period or exclamation mark.\n"
     )
 
-# ============================================================
+# ─────────────────────────────────────────────
 # AI RESPONSE
-# ============================================================
+# ─────────────────────────────────────────────
 def get_ai_response(query, intent, sentiment, confidence, provider, api_key, history=None):
     prompt = build_prompt(query, intent, sentiment, confidence, history)
     model  = MODELS[provider]
@@ -670,15 +771,15 @@ def get_ai_response(query, intent, sentiment, confidence, provider, api_key, his
     except Exception as e:
         return f"Connection error: {str(e)[:80]}"
 
+
 def latency_stats():
     lats = st.session_state.latencies
-    if not lats:
-        return None
+    if not lats: return None
     return {"avg": round(sum(lats)/len(lats)), "min": min(lats), "max": max(lats)}
 
-# ============================================================
+# ─────────────────────────────────────────────
 # SIDEBAR
-# ============================================================
+# ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div style='padding:6px 0 14px 0; border-bottom:1px solid #e5e7eb; margin-bottom:2px;'>
@@ -714,14 +815,13 @@ with st.sidebar:
 
     st.markdown("<div class='sb-sec'>API Key</div>", unsafe_allow_html=True)
 
-    # API key: try secrets first, else manual input
+    import os as _os
+    _on_cloud = _os.environ.get("STREAMLIT_SHARING_MODE") or _os.path.exists("/mount/src")
     api_key = ""
-    # Check if we are on Streamlit Cloud
-    on_cloud = bool(os.environ.get("STREAMLIT_SHARING_MODE") or os.path.exists("/mount/src"))
-    if on_cloud:
+    if _on_cloud:
         try:
-            key_map = {"groq":"GROQ_API_KEY","gemini":"GEMINI_API_KEY","openai":"OPENAI_API_KEY","claude":"CLAUDE_API_KEY"}
-            api_key = st.secrets[key_map[provider]]
+            sm = {"groq":"GROQ_API_KEY","gemini":"GEMINI_API_KEY","openai":"OPENAI_API_KEY","claude":"CLAUDE_API_KEY"}
+            api_key = st.secrets[sm[provider]]
             st.markdown("<div style='font-size:0.69rem;color:#166534;margin-bottom:8px;'>Key loaded from secrets</div>", unsafe_allow_html=True)
         except Exception:
             api_key = ""
@@ -738,24 +838,8 @@ with st.sidebar:
 
     st.markdown("<div style='height:1px;background:#e5e7eb;margin:10px 0;'></div>", unsafe_allow_html=True)
 
-    with st.expander("Model Paths (local only)", expanded=False):
-        model_path = st.text_input(
-            "BERT model folder",
-            value=r"C:\project_s\models",
-            help="Ignored on Streamlit Cloud – model will be downloaded from Hugging Face"
-        )
-        data_path = st.text_input(
-            "Data folder",
-            value=r"C:\project_s\clinc_oos\pre_processed",
-            help="Ignored on Streamlit Cloud – model will be downloaded from Hugging Face"
-        )
-
-    # Determine if we are on cloud and use HF auto-download
-    if on_cloud:
-        st.info(f"Running on Streamlit Cloud – model will be downloaded from Hugging Face repo `{HF_REPO_ID}`")
-    else:
-        st.info("Running locally – model will be loaded from the specified paths")
-
+    st.markdown("<div class='sb-sec'>Model Loading</div>", unsafe_allow_html=True)
+    st.info(f"Model will be downloaded from Hugging Face:\n`{HF_REPO_ID}`")
     load_btn = st.button("Load BERT Model", use_container_width=True)
 
     st.markdown("<div style='height:1px;background:#e5e7eb;margin:12px 0;'></div>", unsafe_allow_html=True)
@@ -810,50 +894,32 @@ with st.sidebar:
 
     if st.button("Clear Conversation", use_container_width=True):
         for k, v in _defaults.items():
-            if isinstance(v, dict):
-                st.session_state[k] = v.copy()
-            elif isinstance(v, list):
-                st.session_state[k] = []
-            else:
-                st.session_state[k] = v
+            if isinstance(v, dict): st.session_state[k] = v.copy()
+            elif isinstance(v, list): st.session_state[k] = []
+            else: st.session_state[k] = v
         st.rerun()
 
-    st.markdown("""
-    <div style='margin-top:12px;padding:10px 12px;background:#f9fafb;border-radius:6px;
-                border:1px solid #e5e7eb;font-size:0.69rem;color:#6b7280;line-height:1.7;'>
-        <div style='font-weight:600;color:#1a3c5e;margin-bottom:4px;'>Model Info</div>
-        Intent Accuracy &nbsp;: <b style='color:#166534;'>86.20%</b><br>
-        Sentiment Accuracy: <b style='color:#166534;'>93.13%</b><br>
-        Architecture &nbsp;&nbsp;&nbsp;: BERT Multi-task<br>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ============================================================
-# LOAD MODEL (handles both local and HF download)
-# ============================================================
+# ─────────────────────────────────────────────
+# LOAD MODEL FROM HUGGING FACE
+# ─────────────────────────────────────────────
 if load_btn:
     if not api_key:
         st.warning("Please enter your API key before loading.")
     else:
-        with st.spinner("Loading BERT model... (first time may take a minute)"):
+        with st.spinner("Loading BERT model from Hugging Face... (first time may take a minute)"):
             try:
-                if on_cloud:
-                    # Use a persistent cache directory inside the app's folder
-                    cache_dir = os.path.join(os.getcwd(), ".cache", "hf_models", HF_REPO_ID.replace("/", "_"))
-                    os.makedirs(cache_dir, exist_ok=True)
-                    st.info("Downloading model from Hugging Face Hub...")
-                    snapshot_download(
-                        repo_id=HF_REPO_ID,
-                        local_dir=cache_dir,
-                        local_dir_use_symlinks=False,
-                        resume_download=True,
-                    )
-                    model_dir = cache_dir
-                    data_dir  = cache_dir
-                else:
-                    # Use local paths
-                    model_dir = model_path
-                    data_dir  = data_path
+                # Use a persistent cache directory inside the app's folder
+                cache_dir = os.path.join(os.getcwd(), ".cache", "hf_models", HF_REPO_ID.replace("/", "_"))
+                os.makedirs(cache_dir, exist_ok=True)
+                st.info("Downloading model from Hugging Face Hub...")
+                snapshot_download(
+                    repo_id=HF_REPO_ID,
+                    local_dir=cache_dir,
+                    local_dir_use_symlinks=False,
+                    resume_download=True,
+                )
+                model_dir = cache_dir
+                data_dir  = cache_dir
 
                 mdl, tok, i2i, oid, dev = load_model(model_dir, data_dir)
                 st.session_state.update({
@@ -869,11 +935,11 @@ if load_btn:
                 st.success(f"BERT loaded — {len(i2i)} intents | Device: {str(dev).upper()} | Provider: {provider.upper()} ({MODELS[provider]})")
             except Exception as e:
                 st.error(f"Load failed: {e}")
-                st.info("If you are on cloud, ensure your Hugging Face repo is public and contains all necessary files.")
+                st.info("Please ensure your Hugging Face repo is public and contains all necessary files.")
 
-# ============================================================
+# ─────────────────────────────────────────────
 # PAGE HEADER
-# ============================================================
+# ─────────────────────────────────────────────
 st.markdown("""
 <div class="page-header">
     <div class="header-tags">
@@ -887,12 +953,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ============================================================
+# ─────────────────────────────────────────────
 # MAIN LAYOUT
-# ============================================================
+# ─────────────────────────────────────────────
 col_chat, col_right = st.columns([1.05, 0.95], gap="large")
 
-# ---------- CHAT COLUMN ----------
+# ══════════════════════════════════════════════
+# CHAT COLUMN
+# ══════════════════════════════════════════════
 with col_chat:
     st.markdown('<div class="section-label">Chat Interface</div>', unsafe_allow_html=True)
 
@@ -946,7 +1014,7 @@ with col_chat:
 
     st.markdown(chat_html, unsafe_allow_html=True)
 
-    # Input form
+    # Input form — text field + arrow button inline
     with st.form("chat_form", clear_on_submit=True):
         input_col, arrow_col = st.columns([11, 1])
         with input_col:
@@ -970,7 +1038,7 @@ with col_chat:
                 "font-family:JetBrains Mono,monospace;'>Was this response helpful?</div>",
                 unsafe_allow_html=True
             )
-            fb1, fb2, _ = st.columns([1, 1, 6])
+            fb1, fb2, _sp = st.columns([1, 1, 6])
             with fb1:
                 if st.button("Yes", key="fb_up", use_container_width=True):
                     st.session_state.messages[last_idx]["feedback"] = "up"
@@ -1007,7 +1075,7 @@ with col_chat:
 
     if "_prefill" in st.session_state:
         user_input = st.session_state.pop("_prefill")
-        submitted = True
+        submitted  = True
 
     # Process query
     if submitted and user_input and user_input.strip():
@@ -1015,7 +1083,7 @@ with col_chat:
             st.warning("Load the model first using the sidebar button.")
         else:
             with st.spinner("Analyzing..."):
-                t0 = time.time()
+                t0     = time.time()
                 result = classify(
                     user_input,
                     st.session_state.model,
@@ -1031,52 +1099,48 @@ with col_chat:
                     st.session_state.conv_history,
                 )
                 latency = round((time.time() - t0) * 1000)
-                now = datetime.now().strftime("%H:%M")
+                now     = datetime.now().strftime("%H:%M")
 
-            st.session_state.conv_history.append({"role": "user", "content": user_input})
-            st.session_state.conv_history.append({"role": "model", "content": response})
+            st.session_state.conv_history.append({"role":"user",  "content":user_input})
+            st.session_state.conv_history.append({"role":"model", "content":response})
             if len(st.session_state.conv_history) > 8:
                 st.session_state.conv_history = st.session_state.conv_history[-8:]
 
-            st.session_state.messages.append({"role": "user", "content": user_input, "time": now})
+            st.session_state.messages.append({"role":"user","content":user_input,"time":now})
             st.session_state.messages.append({
-                "role": "bot",
-                "content": response,
-                "intent": result["intent"],
-                "sentiment": result["sentiment"],
-                "pre_classified": result["pre_classified"],
-                "low_confidence": result["low_confidence"],
-                "time": now,
-                "latency": f"{latency}ms",
-                "feedback": "",
+                "role":"bot","content":response,
+                "intent":result["intent"],"sentiment":result["sentiment"],
+                "pre_classified":result["pre_classified"],
+                "low_confidence":result["low_confidence"],
+                "time":now,"latency":f"{latency}ms","feedback":"",
             })
 
             st.session_state.total_queries += 1
             st.session_state.sentiment_counts[result["sentiment"]] += 1
             st.session_state.latencies.append(latency)
-            if result["pre_classified"]:
-                st.session_state.security_count += 1
-            if result["low_confidence"]:
-                st.session_state.lowconf_count += 1
+            if result["pre_classified"]: st.session_state.security_count += 1
+            if result["low_confidence"]: st.session_state.lowconf_count  += 1
 
             ik = result["intent"].replace("_", " ")
             st.session_state.intent_freq[ik] = st.session_state.intent_freq.get(ik, 0) + 1
-            st.session_state.last_result = {**result, "response": response, "latency": latency, "query": user_input}
+            st.session_state.last_result = {**result, "response":response, "latency":latency, "query":user_input}
 
             flag = "Security" if result["pre_classified"] else ("Low conf" if result["low_confidence"] else "OK")
             st.session_state.history_log.append({
-                "Time": now,
-                "Query": user_input[:44]+"..." if len(user_input)>44 else user_input,
-                "Intent": ik,
+                "Time"      : now,
+                "Query"     : user_input[:44]+"..." if len(user_input)>44 else user_input,
+                "Intent"    : ik,
                 "Confidence": f"{result['intent_confidence']*100:.1f}%",
-                "Sentiment": SENTIMENT_LABEL.get(result["sentiment"], result["sentiment"]),
-                "Status": flag,
-                "Latency": f"{latency}ms",
-                "Feedback": "",
+                "Sentiment" : SENTIMENT_LABEL.get(result["sentiment"], result["sentiment"]),
+                "Status"    : flag,
+                "Latency"   : f"{latency}ms",
+                "Feedback"  : "",
             })
             st.rerun()
 
-# ---------- ANALYTICS COLUMN ----------
+# ══════════════════════════════════════════════
+# ANALYTICS COLUMN
+# ══════════════════════════════════════════════
 with col_right:
     st.markdown('<div class="section-label">Analysis Panel</div>', unsafe_allow_html=True)
 
@@ -1112,28 +1176,32 @@ with col_right:
 
         # Confidence gauge
         st.markdown('<div class="section-label">Intent Confidence</div>', unsafe_allow_html=True)
-        conf_pct = round(r["intent_confidence"] * 100, 1)
+        conf_pct    = round(r["intent_confidence"] * 100, 1)
         gauge_color = "#b91c1c" if r["pre_classified"] else ("#d97706" if conf_pct < 50 else "#1a3c5e")
         fig_g = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=conf_pct,
-            number={"suffix": "%", "font": {"size": 20, "color": "#111827", "family": "JetBrains Mono"}},
-            gauge={
-                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#e5e7eb",
-                         "tickfont": {"size": 9, "color": "#9ca3af"}},
-                "bar": {"color": gauge_color, "thickness": 0.24},
-                "bgcolor": "#f9fafb",
+            mode  = "gauge+number",
+            value = conf_pct,
+            number= {"suffix":"%","font":{"size":20,"color":"#111827","family":"JetBrains Mono"}},
+            gauge = {
+                "axis"    : {"range":[0,100],"tickwidth":1,"tickcolor":"#e5e7eb",
+                             "tickfont":{"size":9,"color":"#9ca3af"}},
+                "bar"     : {"color":gauge_color,"thickness":0.24},
+                "bgcolor" : "#f9fafb",
                 "bordercolor": "#e5e7eb",
                 "borderwidth": 1,
-                "steps": [
-                    {"range": [0, 40], "color": "#fef2f2"},
-                    {"range": [40, 70], "color": "#fffbeb"},
-                    {"range": [70, 100], "color": "#f0fdf4"},
+                "steps"   : [
+                    {"range":[0,40],  "color":"#fef2f2"},
+                    {"range":[40,70], "color":"#fffbeb"},
+                    {"range":[70,100],"color":"#f0fdf4"},
                 ],
             },
         ))
-        fig_g.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=155, margin=dict(l=16, r=16, t=8, b=8), font=dict(family="Inter"))
-        st.plotly_chart(fig_g, use_container_width=True, config={"displayModeBar": False})
+        fig_g.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", height=155,
+            margin=dict(l=16,r=16,t=8,b=8),
+            font=dict(family="Inter"),
+        )
+        st.plotly_chart(fig_g, use_container_width=True, config={"displayModeBar":False})
 
         # Top-3 bars
         st.markdown('<div class="section-label">Top 3 Predictions</div>', unsafe_allow_html=True)
@@ -1152,22 +1220,22 @@ with col_right:
 
         # Sentiment bar
         st.markdown('<div class="section-label">Sentiment Breakdown</div>', unsafe_allow_html=True)
-        ss = r["sentiment_scores"]
+        ss  = r["sentiment_scores"]
         fig = go.Figure(go.Bar(
-            x=list(ss.values()), y=["Negative", "Neutral", "Positive"],
-            orientation="h", marker_color=["#f87171", "#9ca3af", "#4ade80"],
+            x=list(ss.values()), y=["Negative","Neutral","Positive"],
+            orientation="h", marker_color=["#f87171","#9ca3af","#4ade80"],
             text=[f"{v}%" for v in ss.values()], textposition="auto",
-            textfont=dict(color="#1f2937", size=11),
+            textfont=dict(color="#1f2937",size=11),
         ))
         fig.update_layout(
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#374151", family="Inter"), height=125,
-            margin=dict(l=0, r=0, t=0, b=0),
-            xaxis=dict(showgrid=False, showticklabels=False, range=[0, 115]),
-            yaxis=dict(showgrid=False, tickfont=dict(size=10)),
+            font=dict(color="#374151",family="Inter"), height=125,
+            margin=dict(l=0,r=0,t=0,b=0),
+            xaxis=dict(showgrid=False,showticklabels=False,range=[0,115]),
+            yaxis=dict(showgrid=False,tickfont=dict(size=10)),
             showlegend=False,
         )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
 
     else:
         st.markdown("""
@@ -1177,7 +1245,7 @@ with col_right:
                 Analysis results will appear after your first query.
             </div>
             <div style="font-size:0.76rem;color:#d1d5db;margin-top:5px;">
-                Load model → type query → click Send
+                Load model &rarr; type query &rarr; click Send
             </div>
         </div>""", unsafe_allow_html=True)
 
@@ -1186,22 +1254,22 @@ with col_right:
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
         st.markdown('<div class="section-label">Session Sentiment</div>', unsafe_allow_html=True)
         counts = st.session_state.sentiment_counts
-        fig2 = go.Figure(go.Pie(
-            labels=["Negative", "Neutral", "Positive"],
-            values=[counts["negative"], counts["neutral"], counts["positive"]],
-            hole=0.55, marker_colors=["#f87171", "#9ca3af", "#4ade80"],
+        fig2   = go.Figure(go.Pie(
+            labels=["Negative","Neutral","Positive"],
+            values=[counts["negative"],counts["neutral"],counts["positive"]],
+            hole=0.55, marker_colors=["#f87171","#9ca3af","#4ade80"],
             textfont=dict(size=10),
         ))
         fig2.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#374151", family="Inter"),
-            height=185, margin=dict(l=0, r=0, t=0, b=0), showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.22, xanchor="center", x=0.5, font=dict(size=10)),
+            paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#374151",family="Inter"),
+            height=185, margin=dict(l=0,r=0,t=0,b=0), showlegend=True,
+            legend=dict(orientation="h",yanchor="bottom",y=-0.22,xanchor="center",x=0.5,font=dict(size=10)),
             annotations=[dict(
                 text=f"<b>{st.session_state.total_queries}</b>",
-                x=0.5, y=0.5, font=dict(size=16, color="#1a3c5e"), showarrow=False
+                x=0.5,y=0.5,font=dict(size=16,color="#1a3c5e"),showarrow=False
             )],
         )
-        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
 
     # Intent frequency
     if st.session_state.intent_freq:
@@ -1212,21 +1280,22 @@ with col_right:
             x=[x[1] for x in sorted_i], y=[x[0] for x in sorted_i],
             orientation="h", marker_color="#1a3c5e", opacity=0.7,
             text=[x[1] for x in sorted_i], textposition="auto",
-            textfont=dict(color="#ffffff", size=10),
+            textfont=dict(color="#ffffff",size=10),
         ))
         fig3.update_layout(
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#374151", family="Inter"),
-            height=max(110, len(sorted_i)*30), margin=dict(l=0, r=0, t=0, b=0),
-            xaxis=dict(showgrid=False, showticklabels=False),
-            yaxis=dict(showgrid=False, tickfont=dict(size=9)),
+            font=dict(color="#374151",family="Inter"),
+            height=max(110, len(sorted_i)*30),
+            margin=dict(l=0,r=0,t=0,b=0),
+            xaxis=dict(showgrid=False,showticklabels=False),
+            yaxis=dict(showgrid=False,tickfont=dict(size=9)),
             showlegend=False,
         )
-        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar":False})
 
-# ============================================================
+# ─────────────────────────────────────────────
 # HISTORY TABLE
-# ============================================================
+# ─────────────────────────────────────────────
 if st.session_state.history_log:
     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
     st.markdown('<div class="section-label">Query History</div>', unsafe_allow_html=True)
@@ -1234,12 +1303,12 @@ if st.session_state.history_log:
     st.dataframe(
         df, use_container_width=True, hide_index=True,
         column_config={
-            "Query": st.column_config.TextColumn("Query", width="large"),
-            "Intent": st.column_config.TextColumn("Intent", width="medium"),
-            "Confidence": st.column_config.TextColumn("Conf", width="small"),
-            "Sentiment": st.column_config.TextColumn("Sentiment", width="small"),
-            "Status": st.column_config.TextColumn("Status", width="small"),
-            "Latency": st.column_config.TextColumn("Latency", width="small"),
-            "Feedback": st.column_config.TextColumn("Feedback", width="small"),
+            "Query"     : st.column_config.TextColumn("Query",      width="large"),
+            "Intent"    : st.column_config.TextColumn("Intent",     width="medium"),
+            "Confidence": st.column_config.TextColumn("Conf",       width="small"),
+            "Sentiment" : st.column_config.TextColumn("Sentiment",  width="small"),
+            "Status"    : st.column_config.TextColumn("Status",     width="small"),
+            "Latency"   : st.column_config.TextColumn("Latency",    width="small"),
+            "Feedback"  : st.column_config.TextColumn("Feedback",   width="small"),
         }
     )
