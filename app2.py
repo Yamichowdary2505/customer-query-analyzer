@@ -753,9 +753,9 @@ with st.sidebar:
 
     # Determine if we are on cloud and use HF auto-download
     if on_cloud:
-        load_info = st.info(f"Running on Streamlit Cloud – model will be downloaded from Hugging Face repo `{HF_REPO_ID}`")
+        st.info(f"Running on Streamlit Cloud – model will be downloaded from Hugging Face repo `{HF_REPO_ID}`")
     else:
-        load_info = st.info("Running locally – model will be loaded from the specified paths")
+        st.info("Running locally – model will be loaded from the specified paths")
 
     load_btn = st.button("Load BERT Model", use_container_width=True)
 
@@ -841,7 +841,7 @@ if load_btn:
         with st.spinner("Loading BERT model... (first time may take a minute)"):
             try:
                 if on_cloud:
-                    # Use a persistent cache directory (inside the app's folder)
+                    # Use a persistent cache directory inside the app's folder
                     cache_dir = os.path.join(os.getcwd(), ".cache", "hf_models", HF_REPO_ID.replace("/", "_"))
                     os.makedirs(cache_dir, exist_ok=True)
                     st.info("Downloading model from Hugging Face Hub...")
