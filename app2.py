@@ -824,7 +824,6 @@ with st.sidebar:
         <div style='font-weight:600;color:#1a3c5e;margin-bottom:4px;'>Model Info</div>
         Intent Accuracy &nbsp;: <b style='color:#166534;'>86.20%</b><br>
         Sentiment Accuracy: <b style='color:#166534;'>93.13%</b><br>
-        Dataset &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : CLINC150 (151 intents)<br>
         Architecture &nbsp;&nbsp;&nbsp;: BERT Multi-task<br>
     </div>
     """, unsafe_allow_html=True)
