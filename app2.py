@@ -620,7 +620,6 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
         ) + "\nContinue naturally:\n"
 
     return (
-        f"You are a professional customer service chatbot for a financial and services company.\n"
         f"{ctx}Customer query: \"{query}\"\nTopic detected: {ir}\n\n"
         f"Tone: {tone}\nHow to handle: {guide}\n\n"
         f"Rules: Write 2-3 complete helpful sentences. "
