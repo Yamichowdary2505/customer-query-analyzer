@@ -24,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Minimal custom CSS – let Streamlit handle layout
+# Custom CSS — keep header visible so sidebar toggle works
 st.markdown("""
 <style>
     /* Basic styling */
@@ -156,8 +156,9 @@ st.markdown("""
     }
     .empty-state .text { font-size: 0.87rem; }
     .empty-state .hint { font-size: 0.75rem; color: #d1d5db; margin-top: 5px; }
-    /* Remove default Streamlit footer and menu */
-    #MainMenu, footer, header { visibility: hidden; }
+    /* Hide only the main menu and footer – keep header (sidebar toggle) */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
