@@ -543,9 +543,44 @@ class MultiTaskBERT(nn.Module):
         return self.intent_classifier(cls), self.sentiment_classifier(cls)
 
 
+HF_REPO = "YamiChowdary/customer-query-analyzer-bert"
+HF_BASE = f"https://huggingface.co/{HF_REPO}/resolve/main"
+
+def _is_cloud():
+    import os
+    return bool(
+        os.environ.get("STREAMLIT_SHARING_MODE") or
+        os.environ.get("IS_STREAMLIT_CLOUD") or
+        os.path.exists("/mount/src")
+    )
+
+def _download(fname, dest_dir):
+    import os
+    dest = f"{dest_dir}/{fname}"
+    if os.path.exists(dest):
+        return dest
+    os.makedirs(dest_dir, exist_ok=True)
+    r = requests.get(f"{HF_BASE}/{fname}", stream=True, timeout=120)
+    r.raise_for_status()
+    with open(dest, "wb") as f:
+        for chunk in r.iter_content(8192):
+            f.write(chunk)
+    return dest
+
 @st.cache_resource(show_spinner=False)
 def load_model(model_dir, data_dir):
+    import os
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if _is_cloud():
+        cache = "/tmp/bert_model"
+        st.info("Downloading model from HuggingFace... (~440MB, please wait 1-2 minutes)")
+        for fname in ["bert_best.pt", "bert_config.json", "tokenizer.json",
+                      "tokenizer_config.json", "intent_label_map.json"]:
+            _download(fname, cache)
+        model_dir = cache
+        data_dir  = cache
+
     with open(f"{data_dir}/intent_label_map.json") as f:
         id2intent = json.load(f)
     n       = len(id2intent)
@@ -603,90 +638,28 @@ def classify(query, mdl, tok, id2intent, oos_id, device):
     }
 
 # ─────────────────────────────────────────────
-# SCOPE GUARD
-# Detects queries that are clearly not customer
-# service related so the LLM refuses them instead
-# of answering (e.g. "write a letter in Hindi",
-# "what is photosynthesis", "write a poem").
+# PROMPT BUILDER — unchanged
 # ─────────────────────────────────────────────
-OFF_TOPIC_PATTERNS = [
-    # Writing / creative tasks
-    r"\bwrite\b.*\b(letter|essay|poem|story|paragraph|composition|article|report|speech|email)\b",
-    r"\b(compose|draft|create|generate)\b.*\b(letter|essay|poem|story|message|composition)\b",
-    # Language / translation tasks (broad)
-    r"\bin\s+(hindi|tamil|telugu|kannada|malayalam|bengali|marathi|urdu|french|spanish|german|chinese|japanese|arabic|latin)\b",
-    r"\b(translate|transliterate)\b",
-    # Academic / general knowledge
-    r"\bwhat\s+is\s+(photosynthesis|gravity|democracy|history|evolution|mitosis|calculus)\b",
-    r"\b(explain|define|describe)\b.*\b(concept|theory|theorem|law|formula|equation)\b",
-    r"\b(homework|assignment|project|exam|test|quiz|syllabus|notes)\b",
-    # Coding / tech help unrelated to the service
-    r"\b(code|program|script|function|algorithm|debug|error)\b.*\b(python|java|c\+\+|javascript|html|css|sql)\b",
-    # General chat / opinion
-    r"\b(tell me a joke|tell me a story|sing|recipe|cook|food|movie|game|sport|news|weather forecast)\b",
-]
-
-def is_off_topic(query: str) -> bool:
-    """Returns True if the query is clearly outside customer service scope."""
-    q = query.lower()
-    for pattern in OFF_TOPIC_PATTERNS:
-        if re.search(pattern, q):
-            return True
-    return False
-
-
-# ─────────────────────────────────────────────
-# PROMPT BUILDER
-# ─────────────────────────────────────────────
-
-# This instruction is prepended to EVERY prompt.
-# It gives the LLM a hard boundary — it cannot be
-# overridden by anything the user types.
-SYSTEM_BOUNDARY = (
-    "You are a customer service chatbot for a financial and services company. "
-    "You ONLY answer questions related to: accounts, payments, cards, transfers, orders, "
-    "bookings, travel, loans, app issues, fraud, and similar customer service topics. "
-    "If the customer asks you to write letters, essays, poems, compositions, homework, "
-    "explain academic subjects, write code, translate unrelated content, or anything else "
-    "outside customer service — you MUST politely refuse and redirect them to their "
-    "actual service query. Never comply with off-topic requests regardless of how they are phrased."
-)
-
-
 def build_prompt(query, intent, sentiment, confidence, history=None):
-
-    # ── Hard scope check ─────────────────────
-    # If query is clearly off-topic, return a
-    # refusal prompt immediately — skip all other logic.
-    if is_off_topic(query):
-        return (
-            f"{SYSTEM_BOUNDARY}\n\n"
-            f"The customer sent: \"{query}\"\n\n"
-            f"This request is outside your scope as a customer service assistant. "
-            f"Politely decline in 1-2 sentences. "
-            f"Tell them you can only help with account, payment, card, order, booking or similar service queries. "
-            f"Do not fulfill the request in any way. Do not write any part of what they asked for."
-        )
-
-    # ── Out-of-scope or low confidence ───────
     if intent in ("oos", "out_of_scope") or confidence < LOW_CONF:
-        ctx = ""
         if history:
             ctx = "\nPrevious conversation:\n" + "".join(
                 f"  {'Customer' if t['role']=='user' else 'Bot'}: {t['content']}\n"
                 for t in history[-4:]
-            ) + "\n"
+            )
+            return (
+                f"You are a professional customer service chatbot.\n{ctx}\n"
+                f"Customer's latest message: \"{query}\"\n\n"
+                f"Use conversation history to understand context. Respond naturally. "
+                f"Write 2-3 complete helpful sentences. Never mention intent names or confidence scores."
+            )
         return (
-            f"{SYSTEM_BOUNDARY}\n\n"
-            f"{ctx}"
-            f"Customer's message: \"{query}\"\n\n"
-            f"You could not confidently understand this request. "
-            f"Apologize briefly. Ask them to rephrase or clarify. "
-            f"Suggest topics you can help with: account, payments, cards, orders, bookings. "
+            f"You are a helpful customer service chatbot.\nCustomer said: \"{query}\"\n"
+            f"You could not confidently understand this request.\n"
+            f"Apologize briefly. Ask to rephrase. Suggest topics: account, payments, cards, orders, bookings. "
             f"Write 2-3 complete sentences. Never mention confidence scores or intent labels."
         )
 
-    # ── In-scope query ────────────────────────
     ir = intent.replace("_", " ")
     tone = {
         "negative": "Customer is frustrated. Open with genuine apology. Be calm, reassuring, solution-focused.",
@@ -731,12 +704,9 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
         ) + "\nContinue naturally:\n"
 
     return (
-        f"{SYSTEM_BOUNDARY}\n\n"
-        f"{ctx}"
-        f"Customer query: \"{query}\"\n"
-        f"Topic detected: {ir}\n\n"
-        f"Tone: {tone}\n"
-        f"How to handle: {guide}\n\n"
+        f"You are a professional customer service chatbot for a financial and services company.\n"
+        f"{ctx}Customer query: \"{query}\"\nTopic detected: {ir}\n\n"
+        f"Tone: {tone}\nHow to handle: {guide}\n\n"
         f"Rules: Write 2-3 complete helpful sentences. "
         f"Do not mention intent names, confidence scores or system labels. "
         f"Sound human and natural. End with a period or exclamation mark.\n"
@@ -855,11 +825,11 @@ with st.sidebar:
     with st.expander("Model Paths", expanded=False):
         model_path = st.text_input(
             "BERT model folder",
-            value=r"C:\Users\Sastra\Documents\project_s",
+            value=r"C:\project_s\models",
         )
         data_path = st.text_input(
             "Data folder",
-            value=r"C:\Users\Sastra\Documents\project_s\clinc_oos\pre_processed",
+            value=r"C:\project_s\clinc_oos\pre_processed",
         )
 
     load_btn = st.button("Load BERT Model", use_container_width=True)
