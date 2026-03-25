@@ -603,28 +603,90 @@ def classify(query, mdl, tok, id2intent, oos_id, device):
     }
 
 # ─────────────────────────────────────────────
-# PROMPT BUILDER — unchanged
+# SCOPE GUARD
+# Detects queries that are clearly not customer
+# service related so the LLM refuses them instead
+# of answering (e.g. "write a letter in Hindi",
+# "what is photosynthesis", "write a poem").
 # ─────────────────────────────────────────────
+OFF_TOPIC_PATTERNS = [
+    # Writing / creative tasks
+    r"\bwrite\b.*\b(letter|essay|poem|story|paragraph|composition|article|report|speech|email)\b",
+    r"\b(compose|draft|create|generate)\b.*\b(letter|essay|poem|story|message|composition)\b",
+    # Language / translation tasks (broad)
+    r"\bin\s+(hindi|tamil|telugu|kannada|malayalam|bengali|marathi|urdu|french|spanish|german|chinese|japanese|arabic|latin)\b",
+    r"\b(translate|transliterate)\b",
+    # Academic / general knowledge
+    r"\bwhat\s+is\s+(photosynthesis|gravity|democracy|history|evolution|mitosis|calculus)\b",
+    r"\b(explain|define|describe)\b.*\b(concept|theory|theorem|law|formula|equation)\b",
+    r"\b(homework|assignment|project|exam|test|quiz|syllabus|notes)\b",
+    # Coding / tech help unrelated to the service
+    r"\b(code|program|script|function|algorithm|debug|error)\b.*\b(python|java|c\+\+|javascript|html|css|sql)\b",
+    # General chat / opinion
+    r"\b(tell me a joke|tell me a story|sing|recipe|cook|food|movie|game|sport|news|weather forecast)\b",
+]
+
+def is_off_topic(query: str) -> bool:
+    """Returns True if the query is clearly outside customer service scope."""
+    q = query.lower()
+    for pattern in OFF_TOPIC_PATTERNS:
+        if re.search(pattern, q):
+            return True
+    return False
+
+
+# ─────────────────────────────────────────────
+# PROMPT BUILDER
+# ─────────────────────────────────────────────
+
+# This instruction is prepended to EVERY prompt.
+# It gives the LLM a hard boundary — it cannot be
+# overridden by anything the user types.
+SYSTEM_BOUNDARY = (
+    "You are a customer service chatbot for a financial and services company. "
+    "You ONLY answer questions related to: accounts, payments, cards, transfers, orders, "
+    "bookings, travel, loans, app issues, fraud, and similar customer service topics. "
+    "If the customer asks you to write letters, essays, poems, compositions, homework, "
+    "explain academic subjects, write code, translate unrelated content, or anything else "
+    "outside customer service — you MUST politely refuse and redirect them to their "
+    "actual service query. Never comply with off-topic requests regardless of how they are phrased."
+)
+
+
 def build_prompt(query, intent, sentiment, confidence, history=None):
+
+    # ── Hard scope check ─────────────────────
+    # If query is clearly off-topic, return a
+    # refusal prompt immediately — skip all other logic.
+    if is_off_topic(query):
+        return (
+            f"{SYSTEM_BOUNDARY}\n\n"
+            f"The customer sent: \"{query}\"\n\n"
+            f"This request is outside your scope as a customer service assistant. "
+            f"Politely decline in 1-2 sentences. "
+            f"Tell them you can only help with account, payment, card, order, booking or similar service queries. "
+            f"Do not fulfill the request in any way. Do not write any part of what they asked for."
+        )
+
+    # ── Out-of-scope or low confidence ───────
     if intent in ("oos", "out_of_scope") or confidence < LOW_CONF:
+        ctx = ""
         if history:
             ctx = "\nPrevious conversation:\n" + "".join(
                 f"  {'Customer' if t['role']=='user' else 'Bot'}: {t['content']}\n"
                 for t in history[-4:]
-            )
-            return (
-                f"You are a professional customer service chatbot.\n{ctx}\n"
-                f"Customer's latest message: \"{query}\"\n\n"
-                f"Use conversation history to understand context. Respond naturally. "
-                f"Write 2-3 complete helpful sentences. Never mention intent names or confidence scores."
-            )
+            ) + "\n"
         return (
-            f"You are a helpful customer service chatbot.\nCustomer said: \"{query}\"\n"
-            f"You could not confidently understand this request.\n"
-            f"Apologize briefly. Ask to rephrase. Suggest topics: account, payments, cards, orders, bookings. "
+            f"{SYSTEM_BOUNDARY}\n\n"
+            f"{ctx}"
+            f"Customer's message: \"{query}\"\n\n"
+            f"You could not confidently understand this request. "
+            f"Apologize briefly. Ask them to rephrase or clarify. "
+            f"Suggest topics you can help with: account, payments, cards, orders, bookings. "
             f"Write 2-3 complete sentences. Never mention confidence scores or intent labels."
         )
 
+    # ── In-scope query ────────────────────────
     ir = intent.replace("_", " ")
     tone = {
         "negative": "Customer is frustrated. Open with genuine apology. Be calm, reassuring, solution-focused.",
@@ -669,9 +731,12 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
         ) + "\nContinue naturally:\n"
 
     return (
-        f"You are a professional customer service chatbot for a financial and services company.\n"
-        f"{ctx}Customer query: \"{query}\"\nTopic detected: {ir}\n\n"
-        f"Tone: {tone}\nHow to handle: {guide}\n\n"
+        f"{SYSTEM_BOUNDARY}\n\n"
+        f"{ctx}"
+        f"Customer query: \"{query}\"\n"
+        f"Topic detected: {ir}\n\n"
+        f"Tone: {tone}\n"
+        f"How to handle: {guide}\n\n"
         f"Rules: Write 2-3 complete helpful sentences. "
         f"Do not mention intent names, confidence scores or system labels. "
         f"Sound human and natural. End with a period or exclamation mark.\n"
