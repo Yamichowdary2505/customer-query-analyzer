@@ -295,34 +295,8 @@ def classify(query, mdl, tok, id2intent, oos_id, device):
 # ============================================================
 # PROMPT BUILDER — with full conversation history
 # ============================================================
-OFF_TOPIC_PATTERNS = [
-    r"\bwrite\b.*\b(letter|essay|poem|story|paragraph|composition|article|report|speech|email)\b",
-    r"\b(compose|draft|create|generate)\b.*\b(letter|essay|poem|story|message|composition)\b",
-    r"\bin\s+(hindi|tamil|telugu|kannada|malayalam|bengali|marathi|urdu|french|spanish|german|chinese|japanese|arabic|latin)\b",
-    r"\b(translate|transliterate)\b",
-    r"\bwhat\s+is\s+(photosynthesis|gravity|democracy|history|evolution|mitosis|calculus)\b",
-    r"\b(explain|define|describe)\b.*\b(concept|theory|theorem|law|formula|equation)\b",
-    r"\b(homework|assignment|project|exam|test|quiz|syllabus|notes)\b",
-    r"\b(code|program|script|function|algorithm|debug|error)\b.*\b(python|java|c\+\+|javascript|html|css|sql)\b",
-    r"\b(tell me a joke|tell me a story|sing|recipe|cook|food|movie|game|sport|news|weather forecast)\b",
-]
-
-def is_off_topic(query: str) -> bool:
-    q = query.lower()
-    for pattern in OFF_TOPIC_PATTERNS:
-        if re.search(pattern, q):
-            return True
-    return False
-
-SYSTEM_BOUNDARY = (
-    "You are a customer service chatbot for a financial and services company. "
-    "You ONLY answer questions related to: accounts, payments, cards, transfers, orders, "
-    "bookings, travel, loans, app issues, fraud, and similar customer service topics. "
-    "If the customer asks you to write letters, essays, poems, compositions, homework, "
-    "explain academic subjects, write code, translate unrelated content, or anything else "
-    "outside customer service — you MUST politely refuse and redirect them to their "
-    "actual service query. Never comply with off-topic requests regardless of how they are phrased."
-)
+# Restrictions removed — unrestricted mode
+# OFF_TOPIC_PATTERNS and SYSTEM_BOUNDARY can be added back when needed
 
 def build_conversation_context(history):
     """Build full conversation history string for LLM context."""
@@ -339,26 +313,8 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
     # Build full conversation context from history
     conv_ctx = build_conversation_context(history)
 
-    if is_off_topic(query):
-        return (
-            f"{SYSTEM_BOUNDARY}\n\n"
-            f"{conv_ctx}"
-            f"The customer sent: \"{query}\"\n\n"
-            f"This request is outside your scope. Politely decline in 1-2 sentences. "
-            f"Tell them you can only help with account, payment, card, order, booking or similar service queries."
-        )
-
-    if intent in ("oos", "out_of_scope") or confidence < LOW_CONF:
-        return (
-            f"{SYSTEM_BOUNDARY}\n\n"
-            f"{conv_ctx}"
-            f"Customer's latest message: \"{query}\"\n\n"
-            f"You could not confidently understand this request. "
-            f"Use the conversation history above to understand context if available. "
-            f"Apologize briefly, ask them to rephrase or clarify. "
-            f"Suggest topics: account, payments, cards, orders, bookings. "
-            f"Write 2-3 complete sentences. Never mention confidence scores or intent labels."
-        )
+    # No restrictions — respond to anything the user asks
+    # SYSTEM_BOUNDARY and off-topic filtering can be added back when needed
 
     ir = intent.replace("_", " ")
     tone = {
@@ -367,46 +323,15 @@ def build_prompt(query, intent, sentiment, confidence, history=None):
         "positive": "Customer is happy. Match positive energy with warmth.",
     }.get(sentiment, "Be professional, helpful and polite.")
 
-    if intent == "unauthorized_access":
-        guide = "URGENT: Advise: 1) Change password now 2) Enable 2FA 3) Review recent logins 4) Contact security."
-    elif intent == "report_fraud":
-        guide = "URGENT: Advise: 1) Block card 2) File dispute 3) Note transaction details. Reassure they are protected."
-    elif intent == "emergency_block":
-        guide = "URGENT: Block card immediately via app or helpline. Offer replacement card."
-    elif intent == "account_compromised":
-        guide = "URGENT: Reset password immediately. Check registered email/phone. Contact support if locked out."
-    elif any(x in intent for x in ["balance","account","bank","statement"]):
-        guide = "Guide to check via app/website. Remind to keep credentials secure."
-    elif any(x in intent for x in ["card","freeze","block","pin","chip"]):
-        guide = "Take card issues seriously. Provide clear next steps."
-    elif any(x in intent for x in ["transfer","transaction","payment","send","wire"]):
-        guide = "Be precise. Confirm transaction type. Provide processing times and fees."
-    elif any(x in intent for x in ["fraud","dispute","unauthorized","stolen","scam"]):
-        guide = "Highest urgency. Reassure customer they are protected. Guide to report/dispute."
-    elif any(x in intent for x in ["order","delivery","shipping","track","return","refund"]):
-        guide = "Acknowledge concern. Provide tracking steps or resolution timeline."
-    elif any(x in intent for x in ["book","flight","hotel","reservation","ticket","travel"]):
-        guide = "Help with booking clearly. Confirm details. Provide next steps."
-    elif any(x in intent for x in ["loan","credit","mortgage","interest","borrow"]):
-        guide = "Be transparent. Use 'typically' or 'generally'. Avoid promises."
-    elif any(x in intent for x in ["app","login","password","reset","otp","verify"]):
-        guide = "Guide through steps clearly. Reassure issue is common."
-    elif any(x in intent for x in ["greeting","hello","thank","bye","goodbye"]):
-        guide = "Respond naturally and warmly. Keep brief."
-    else:
-        guide = "Understand the need and respond helpfully. Be clear and actionable."
-
     return (
-        f"{SYSTEM_BOUNDARY}\n\n"
+        f"You are a helpful and friendly AI assistant.\n\n"
         f"{conv_ctx}"
-        f"Customer's latest message: \"{query}\"\n"
-        f"Topic detected: {ir}\n\n"
-        f"Tone: {tone}\n"
-        f"How to handle: {guide}\n\n"
-        f"Rules: Write 2-3 complete helpful sentences. "
+        f"User's latest message: \"{query}\"\n"
+        f"Detected topic: {ir}\n\n"
+        f"Tone guidance: {tone}\n\n"
         f"Use the conversation history above to give a contextually aware response. "
-        f"Do not mention intent names, confidence scores or system labels. "
-        f"Sound human and natural. End with a period or exclamation mark.\n"
+        f"Be natural, helpful and conversational. "
+        f"Do not mention intent names, confidence scores or system labels.\n"
     )
 
 # ============================================================
