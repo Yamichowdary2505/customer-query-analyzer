@@ -743,7 +743,6 @@ with st.sidebar:
             Query Analyzer
         </div>
         <div style='font-size:0.68rem; color:#9ca3af; margin-top:2px;'>
-            Final Year Project · 2025
         </div>
     </div>
     """, unsafe_allow_html=True)
