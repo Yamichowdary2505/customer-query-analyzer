@@ -134,7 +134,7 @@ for k, v in _defaults.items():
 SENTIMENT_NAMES = ["negative", "neutral", "positive"]
 SENTIMENT_LABEL = {"negative": "Negative", "neutral": "Neutral", "positive": "Positive"}
 LOW_CONF        = 0.20
-GROQ_MODEL      = "llama3-8b-8192"
+GROQ_MODEL      = "llama-3.1-8b-instant"
 HF_REPO_ID      = "YamiChowdary/customer-query-analyzer-bert"
 
 # ============================================================
